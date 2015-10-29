@@ -16,19 +16,22 @@ def make_nn_funs(layer_sizes, L2_reg):
             yield W_vect[:m*n].reshape((m,n)), W_vect[m*n:m*n+n]
             W_vect = W_vect[(m+1)*n:]
 
-    def predictions(W_vect, inputs):
+    def predictions(W_vect, inputs, alpha):
+        outputs = 0
         for W, b in unpack_layers(W_vect):
+            prev_outputs = outputs
             outputs = np.dot(inputs, W) + b
             inputs = np.tanh(outputs)
-        return outputs - logsumexp(outputs, axis=1, keepdims=True)
+        fractional_outputs = alpha * prev_outputs + (1 - alpha) * outputs
+        return fractional_outputs # - logsumexp(fractional_outputs, axis=1, keepdims=True)
 
-    def loss(W_vect, X, T):
+    def loss(W_vect, X, T, alpha):
         log_prior = -L2_reg * np.dot(W_vect, W_vect)
-        log_lik = np.sum(predictions(W_vect, X) * T)
+        log_lik = np.sum(predictions(W_vect, X, alpha) * T)
         return - log_prior - log_lik
 
-    def frac_err(W_vect, X, T):
-        return np.mean(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X), axis=1))
+    def frac_err(W_vect, X, T, alpha):
+        return np.mean(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X, alpha), axis=1))
 
     return N, predictions, loss, frac_err
 
@@ -58,7 +61,7 @@ def make_batches(N_data, batch_size):
 
 if __name__ == '__main__':
     # Network parameters
-    layer_sizes = [784, 200, 100, 10]
+    layer_sizes = [784, 200, 10, 10]
     L2_reg = 1.0
 
     # Training parameters
@@ -73,29 +76,38 @@ if __name__ == '__main__':
 
     # Make neural net functions
     N_weights, pred_fun, loss_fun, frac_err = make_nn_funs(layer_sizes, L2_reg)
-    loss_grad = grad(loss_fun)
+    loss_grad_W = grad(loss_fun, 0)
+    loss_grad_alpha = grad(loss_fun, 3)
 
     # Initialize weights
     rs = npr.RandomState()
     W = rs.randn(N_weights) * param_scale
+    alpha = 0.1
 
     # Check the gradients numerically, just to be safe
-    quick_grad_check(loss_fun, W, (train_images, train_labels))
+    # quick_grad_check(loss_fun, W, (train_images, train_labels))
 
     print("    Epoch      |    Train err  |   Test err  ")
 
-    def print_perf(epoch, W):
-        test_perf  = frac_err(W, test_images, test_labels)
-        train_perf = frac_err(W, train_images, train_labels)
+    def print_perf(epoch, W, alpha):
+        test_perf  = frac_err(W, test_images, test_labels, alpha)
+        train_perf = frac_err(W, train_images, train_labels, alpha)
         print("{0:15}|{1:15}|{2:15}".format(epoch, train_perf, test_perf))
 
     # Train with sgd
     batch_idxs = make_batches(train_images.shape[0], batch_size)
-    cur_dir = np.zeros(N_weights)
+    cur_dir_W = np.zeros(N_weights)
+    cur_dir_alpha = 0
 
     for epoch in range(num_epochs):
-        print_perf(epoch, W)
+        print("alpha: " + str(alpha))
+        print_perf(epoch, W, alpha)
         for idxs in batch_idxs:
-            grad_W = loss_grad(W, train_images[idxs], train_labels[idxs])
-            cur_dir = momentum * cur_dir + (1.0 - momentum) * grad_W
-            W -= learning_rate * cur_dir
+            grad_W = loss_grad_W(W, train_images[idxs], train_labels[idxs], alpha)
+            cur_dir_W = momentum * cur_dir_W + (1.0 - momentum) * grad_W
+            W -= learning_rate * cur_dir_W
+
+            grad_alpha = loss_grad_alpha(W, train_images[idxs], train_labels[idxs], alpha)
+            cur_dir_alpha = momentum * cur_dir_alpha + (1.0 - momentum) * grad_alpha
+            alpha -= learning_rate * cur_dir_alpha
+
