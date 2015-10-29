@@ -6,6 +6,8 @@ from autograd.scipy.misc import logsumexp
 from autograd import grad
 from autograd.util import quick_grad_check
 
+def sigmoid(x):
+    return np.exp(-np.logaddexp(0, -x)) if x >= 0 else np.exp(x - np.logaddexp(x, 0))
 
 def make_nn_funs(layer_sizes, L2_reg):
     shapes = zip(layer_sizes[:-1], layer_sizes[1:])
@@ -22,7 +24,8 @@ def make_nn_funs(layer_sizes, L2_reg):
             prev_outputs = outputs
             outputs = np.dot(inputs, W) + b
             inputs = np.tanh(outputs)
-        fractional_outputs = alpha * prev_outputs + (1 - alpha) * outputs
+        weight = sigmoid(alpha)
+        fractional_outputs = weight * prev_outputs + (1 - weight) * outputs
         return fractional_outputs # - logsumexp(fractional_outputs, axis=1, keepdims=True)
 
     def loss(W_vect, X, T, alpha):
