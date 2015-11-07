@@ -112,12 +112,12 @@ if __name__ == '__main__':
     # Check the gradients numerically, just to be safe
     # quick_grad_check(loss_fun, W, (train_images, train_labels))
 
-    print("    Epoch      |    Train err  |   Test err  ")
+    print("    Epoch      |    Train err  |   Test err  |   Alpha  ")
 
     def print_perf(epoch, W, alpha):
         test_perf  = frac_err(W, test_images, test_labels, alpha)
         train_perf = frac_err(W, train_images, train_labels, alpha)
-        print("{0:15}|{1:15}|{2:15}".format(epoch, train_perf, test_perf))
+        print("{0:15}|{1:15}|{2:15}|{3:15}".format(epoch, train_perf, test_perf, alpha))
 
     # Train with sgd
     batch_idxs = make_batches(train_images.shape[0], batch_size)
@@ -125,7 +125,6 @@ if __name__ == '__main__':
     cur_dir_alpha = 0
 
     for epoch in range(num_epochs):
-        print("alpha: " + str(alpha))
         print_perf(epoch, W, alpha)
         for idxs in batch_idxs:
             grad_W = loss_grad_W(W, train_images[idxs], train_labels[idxs], alpha)
