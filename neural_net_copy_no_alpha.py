@@ -57,10 +57,12 @@ def make_nn_funs(layer_sizes, L2_reg):
             #inputs = outputs
             #print(outputs.shape)
             inputs = np.array([np.array([sigmoid(i) for i in x]) for x in outputs])
-        fractional_outputs = outputs
+        fractional_outputs = inputs/sum(inputs)
         return fractional_outputs # - logsumexp(fractional_outputs, axis=1, keepdims=True)
 
     def loss(W_vect, X, T, alpha):
+        #print ("W:", W_vect)
+        #print ("log_lik_terms", predictions(W_vect, X, alpha))
         log_prior = -L2_reg * np.dot(W_vect, W_vect)
         log_lik = np.sum(predictions(W_vect, X, alpha) * T)
         return - log_prior - log_lik
@@ -108,7 +110,7 @@ if __name__ == '__main__':
     # Training parameters
     param_scale = 0.1
     learning_rate = 1e-5
-    momentum = 0.9
+    momentum = 0.5
     batch_size = 20 #256
     num_epochs = 200
 
