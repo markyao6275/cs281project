@@ -113,4 +113,3 @@ if __name__ == '__main__':
             grad_alpha = loss_grad_alpha(W, train_images[idxs], train_labels[idxs], alpha)
             cur_dir_alpha = momentum * cur_dir_alpha + (1.0 - momentum) * grad_alpha
             alpha -= learning_rate * cur_dir_alpha
-
