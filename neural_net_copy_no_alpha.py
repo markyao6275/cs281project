@@ -57,6 +57,7 @@ def make_nn_funs(layer_sizes, L2_reg):
             #inputs = outputs
             #print(outputs.shape)
             inputs = np.array([np.array([sigmoid(i) for i in x]) for x in outputs])
+        #print("Inputs:", inputs)
         fractional_outputs = inputs/sum(inputs)
         return fractional_outputs # - logsumexp(fractional_outputs, axis=1, keepdims=True)
 
@@ -69,11 +70,10 @@ def make_nn_funs(layer_sizes, L2_reg):
 
     def frac_err(W_vect, X, T, alpha):
         #print(predictions(W_vect, X, alpha))
-        print ("Prediction:", np.argmax(predictions(W_vect, X, alpha), axis=1), "Answer:", np.argmax(T, axis=1))
+        #print ("Prediction:", np.argmax(predictions(W_vect, X, alpha), axis=1), "Answer:", np.argmax(T, axis=1))
         #print("argmaxT:",np.argmax(T, axis=1))
         #print(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X, alpha), axis=1))
         percent_wrong = np.mean(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X, alpha), axis=1))
-        print("Percent Wrong:", percent_wrong)
         return percent_wrong
 
     return N, predictions, loss, frac_err
@@ -109,8 +109,8 @@ if __name__ == '__main__':
 
     # Training parameters
     param_scale = 0.1
-    learning_rate = 1e-5
-    momentum = 0.5
+    learning_rate = 1
+    momentum = 0.1
     batch_size = 20 #256
     num_epochs = 200
 
@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
     # Initialize weights
     rs = npr.RandomState()
-    W = rs.randn(N_weights) * param_scale
+    W = np.zeros(N_weights)#rs.randn(N_weights) * param_scale
     alpha = 1
 
     # Check the gradients numerically, just to be safe
@@ -149,4 +149,4 @@ if __name__ == '__main__':
         for idxs in batch_idxs:
             grad_W = loss_grad_W(W, train_images[idxs], train_labels[idxs], alpha)
             cur_dir_W = momentum * cur_dir_W + (1.0 - momentum) * grad_W
-            W -= learning_rate * cur_dir_W
+            W -= learning_rate/(epoch + 1.) * cur_dir_W
