@@ -32,6 +32,7 @@ def make_nn_funs(layer_sizes, L2_reg):
             W_vect = W_vect[(m+1)*n:]
 
     def predictions(W_vect, inputs, alpha):
+        print ("W:", W_vect)
         outputs = 0
         first_iteration = True
         for W, b in unpack_layers(W_vect):
@@ -92,6 +93,9 @@ if __name__ == '__main__':
     batch_size = 20
     num_epochs = 200
 
+    learning_rate_alpha = 30.
+    momentum_alpha = 0.1
+
     # Load and process MNIST data (borrowing from Kayak)
     #N_data, train_images, train_labels, test_images, test_labels = load_mnist()
 
@@ -107,12 +111,12 @@ if __name__ == '__main__':
     # Initialize weights
     rs = npr.RandomState()
     W = np.ones(N_weights)#rs.randn(N_weights) * param_scale
-    alpha = 1.
+    alpha = -2.
 
     # Check the gradients numerically, just to be safe
     # quick_grad_check(loss_fun, W, (train_images, train_labels))
 
-    print("    Epoch      |    Train err  |   Test err  |   Alpha  ")
+    print("    Epoch      |    Train err  |   Test err    |   Alpha  ")
 
     def print_perf(epoch, W, alpha):
         test_perf  = frac_err(W, test_images, test_labels, alpha)
@@ -132,6 +136,7 @@ if __name__ == '__main__':
             W -= learning_rate/(epoch + 1.) * cur_dir_W
 
             grad_alpha = loss_grad_alpha(W, train_images[idxs], train_labels[idxs], alpha)
-            cur_dir_alpha = momentum * cur_dir_alpha + (1.0 - momentum) * grad_alpha
-            alpha -= learning_rate/np.sqrt(epoch + 1.) * cur_dir_alpha
+            print("Grad_Alpha:", grad_alpha)
+            cur_dir_alpha = momentum_alpha * cur_dir_alpha + (1.0 - momentum_alpha) * grad_alpha
+            alpha -= learning_rate_alpha/np.sqrt(epoch + 1.) * cur_dir_alpha
 
