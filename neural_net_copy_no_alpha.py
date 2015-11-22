@@ -33,6 +33,40 @@ x2_test = [12.804446516144342, 88.26281448518169, 50.03450674994787, 83.26885465
 y_test = [34.96333118513873, 230.16232372893245, 186.36219721193171, 219.25281422497747, 78.7901250442087, 98.15457979272267, 175.26932582846064, 189.3444413633278, 131.139995553925, 186.4803183290494, 107.29740112385734, 92.83380248276534, 154.40050338429373, 170.33329454599004, 217.3792732793444, 173.86210845976424, 123.21276491880252, 214.00214135927078, 65.01403140833044, 128.93174222541668, 258.27743407218856, 162.36474155385903, 182.09320469893115, 283.5433339272224, 110.30165666252365, 86.90947725162279, 163.50290321907775, 280.3849350293204, 263.8434372083714, 72.84101685684804, 107.02115664101954, 130.02155609318797, 249.51032618719807, 157.50138082744317, 134.12007805234455, 126.89038763572846, 140.78886679834815, 84.90954353328897, 234.41977756803252, 99.13122152130966, 90.38805349201213, 155.5288531223009, 119.88077924567759, 217.87831590054213, 142.42370847541295, 129.46162324741795, 198.30109990293153, 99.90505582291202, 170.65088729227438, 111.1599263911343]
 y_test_labels = np.array([[1, 0] if y > y_train_median else [0, 1] for y in y_test])
 
+def logsumexp(X, axis=1):
+    max_X = np.max(X)
+    return max_X + np.log(np.sum(np.exp(X - max_X), axis=axis, keepdims=True))
+
+def get_wine_data():
+    print("Loading training data...")
+    wine_data_file = open('./wines_data/wine.data', 'r')
+    num_class_1, num_class_2, num_class_3 = 59, 71, 48
+    wines_data = []
+
+    for line in wine_data_file:
+        entries = line.split(',')
+        wine_type = int(entries[0]) # 1, 2, or 3
+        wine_type_one_hot = [1., 0., 0.] if wine_type == 1 else [0., 1., 0.] if wine_type == 2 else [0., 0., 1.]
+        wine_features = map(float, entries[1:-1])
+
+        wine_data = wine_features
+        wine_data.extend(wine_type_one_hot)
+        wines_data.append(wine_data)
+
+    wines_data = np.array(wines_data)
+    np.random.shuffle(wines_data)
+    features, labels = wines_data[:, :-3], wines_data[:, -3:]
+
+    num_data_pts = len(wines_data)
+    train_set_size = 0.8 * num_data_pts
+    train_data, train_labels = features[:train_set_size], labels[:train_set_size]
+    test_data, test_labels = features[train_set_size:], labels[train_set_size:]
+
+    assert np.sum(wines_data[:, -3]) == num_class_1
+    assert np.sum(wines_data[:, -2]) == num_class_2
+    assert np.sum(wines_data[:, -1]) == num_class_3
+    return num_data_pts, train_data, train_labels, test_data, test_labels
+
 
 def sigmoid(x):
     return np.exp(-np.logaddexp(0, -x)) if x >= 0 else np.exp(x - np.logaddexp(x, 0))
@@ -46,32 +80,36 @@ def make_nn_funs(layer_sizes, L2_reg):
             yield W_vect[:m*n].reshape((m,n)), W_vect[m*n:m*n+n]
             W_vect = W_vect[(m+1)*n:]
 
-    def predictions(W_vect, inputs, alpha):
+    def predictions(W_vect, inputs):
         outputs = 0
         for W, b in unpack_layers(W_vect):
             #print("W:", W, " Inputs[0]:", inputs[0])
-            prev_outputs = outputs
+            #prev_outputs = outputs
             outputs = np.dot(np.array(inputs), W) + b
             #inputs = outputs
             #print(outputs.shape)
-            inputs = np.array([np.array([sigmoid(i) for i in x]) for x in outputs])
+            inputs = np.tanh(outputs)
+            #inputs = np.array([np.array([sigmoid(i) for i in x]) for x in outputs])
         #print("Inputs:", inputs)
-        fractional_outputs = inputs/sum(inputs)
-        return fractional_outputs# - logsumexp(fractional_outputs, axis=1, keepdims=True)
+        return outputs
 
-    def loss(W_vect, X, T, alpha):
+    def loss(W_vect, X, T):
         #print ("W:", W_vect)
         #print ("log_lik_terms", predictions(W_vect, X, alpha))
         log_prior = -L2_reg * np.dot(W_vect, W_vect)
-        log_lik = np.sum(predictions(W_vect, X, alpha) * T)
-        return - log_prior - log_lik
+        preds = predictions(W_vect, X)
+        #print("W_vect:", W_vect)
+        #print("preds: ", preds)
+        #print("T:", T)
+        normalised_log_probs = preds - logsumexp(preds)
+        #print("normalised_log_probs: ", normalised_log_probs)
+        log_lik = np.sum(normalised_log_probs * T)
+        return log_prior + log_lik
 
-    def frac_err(W_vect, X, T, alpha):
-        #print(predictions(W_vect, X, alpha))
-        print ("Prediction:", np.argmax(predictions(W_vect, X, alpha), axis=1), "Answer:", np.argmax(T, axis=1))
-        #print("argmaxT:",np.argmax(T, axis=1))
-        #print(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X, alpha), axis=1))
-        percent_wrong = np.mean(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X, alpha), axis=1))
+    def frac_err(W_vect, X, T):
+        #print ("Prediction:", predictions(W_vect, X, alpha))
+        #print ("Prediction:", np.argmax(predictions(W_vect, X, alpha), axis=1), "Answer:", np.argmax(T, axis=1))
+        percent_wrong = np.mean(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X), axis=1))
         return percent_wrong
 
     return N, predictions, loss, frac_err
@@ -102,21 +140,23 @@ def make_batches(N_data, batch_size):
 
 if __name__ == '__main__':
     # Network parameters
-    layer_sizes = [2, 2]
-    L2_reg = 1.0
+    layer_sizes = [12, 30, 3]
+    L2_reg = 0.0#1.0
 
     # Training parameters
     param_scale = 0.1
-    learning_rate = 2
-    momentum = 0
-    batch_size = 20 #256
-    num_epochs = 200
+    learning_rate = 1e-5
+    momentum = 0.1
+    #batch_size = len(train_images)
+    num_epochs = 15000
 
     # Load and process MNIST data (borrowing from Kayak)
     #N_data, train_images, train_labels, test_images, test_labels = load_mnist()
 
-    train_images, test_images = np.array(zip(x1_train, x2_train)), np.array(zip(x1_test, x2_test))
-    train_labels, test_labels = y_train_labels, y_test_labels
+    N_data, train_images, train_labels, test_images, test_labels = get_wine_data()
+    batch_size = len(train_images)
+    #train_images, test_images = np.array(zip(x1_train, x2_train)), np.array(zip(x1_test, x2_test))
+    #train_labels, test_labels = y_train_labels, y_test_labels
 
     # Make neural net functions
     N_weights, pred_fun, loss_fun, frac_err = make_nn_funs(layer_sizes, L2_reg)
@@ -124,17 +164,16 @@ if __name__ == '__main__':
 
     # Initialize weights
     rs = npr.RandomState()
-    W = np.zeros(N_weights)#rs.randn(N_weights) * param_scale
-    alpha = 1
+    W = rs.randn(N_weights) * param_scale
 
     # Check the gradients numerically, just to be safe
     # quick_grad_check(loss_fun, W, (train_images, train_labels))
 
     print("    Epoch      |    Train err  |   Test err  ")
 
-    def print_perf(epoch, W, alpha):
-        test_perf  = frac_err(W, test_images, test_labels, alpha)
-        train_perf = frac_err(W, train_images, train_labels, alpha)
+    def print_perf(epoch, W):
+        test_perf  = frac_err(W, test_images, test_labels)
+        train_perf = frac_err(W, train_images, train_labels)
         print("{0:15}|{1:15}|{2:15}".format(epoch, train_perf, test_perf))
 
     # Train with sgd
@@ -142,8 +181,8 @@ if __name__ == '__main__':
     cur_dir_W = np.zeros(N_weights)
 
     for epoch in range(num_epochs):
-        print_perf(epoch, W, alpha)
+        print_perf(epoch, W)
         for idxs in batch_idxs:
-            grad_W = loss_grad_W(W, train_images[idxs], train_labels[idxs], alpha)
+            grad_W = loss_grad_W(W, train_images[idxs], train_labels[idxs])
             cur_dir_W = momentum * cur_dir_W + (1.0 - momentum) * grad_W
-            W -= learning_rate * cur_dir_W
+            W += learning_rate * cur_dir_W
