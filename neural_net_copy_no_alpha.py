@@ -83,32 +83,18 @@ def make_nn_funs(layer_sizes, L2_reg):
     def predictions(W_vect, inputs):
         outputs = 0
         for W, b in unpack_layers(W_vect):
-            #print("W:", W, " Inputs[0]:", inputs[0])
-            #prev_outputs = outputs
             outputs = np.dot(np.array(inputs), W) + b
-            #inputs = outputs
-            #print(outputs.shape)
             inputs = np.tanh(outputs)
-            #inputs = np.array([np.array([sigmoid(i) for i in x]) for x in outputs])
-        #print("Inputs:", inputs)
         return outputs
 
     def loss(W_vect, X, T):
-        #print ("W:", W_vect)
-        #print ("log_lik_terms", predictions(W_vect, X, alpha))
         log_prior = -L2_reg * np.dot(W_vect, W_vect)
         preds = predictions(W_vect, X)
-        #print("W_vect:", W_vect)
-        #print("preds: ", preds)
-        #print("T:", T)
         normalised_log_probs = preds - logsumexp(preds)
-        #print("normalised_log_probs: ", normalised_log_probs)
         log_lik = np.sum(normalised_log_probs * T)
         return log_prior + log_lik
 
     def frac_err(W_vect, X, T):
-        #print ("Prediction:", predictions(W_vect, X, alpha))
-        #print ("Prediction:", np.argmax(predictions(W_vect, X, alpha), axis=1), "Answer:", np.argmax(T, axis=1))
         percent_wrong = np.mean(np.argmax(T, axis=1) != np.argmax(predictions(W_vect, X), axis=1))
         return percent_wrong
 
@@ -140,12 +126,12 @@ def make_batches(N_data, batch_size):
 
 if __name__ == '__main__':
     # Network parameters
-    layer_sizes = [12, 30, 3]
+    layer_sizes = [12, 3, 3]
     L2_reg = 0.0#1.0
 
     # Training parameters
     param_scale = 0.1
-    learning_rate = 1e-5
+    learning_rate = 1e-4
     momentum = 0.1
     #batch_size = len(train_images)
     num_epochs = 15000
