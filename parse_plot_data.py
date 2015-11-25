@@ -24,10 +24,15 @@ with open(data_filename, 'r') as input_file:
     for line in input_file:
         data_as_string = line.split('|')
         data = map(float, data_as_string)
+
+        has_alpha = len(data) == 3 
+
         iteration_nums.append(curr_iteration)
         training_errors.append(data[TRAINING_ERR_INDEX])
         test_errors.append(data[TEST_ERR_INDEX])
-        alphas.append(data[ALPHA_INDEX])
+        
+        if has_alpha:
+            alphas.append(data[ALPHA_INDEX])
         curr_iteration += 1
 
 data_filename_without_filetype = data_filename.rsplit('.txt', 1)[0]
@@ -46,10 +51,11 @@ plt.xlabel('Iteration Number')
 plt.ylabel('Proportion Misclassified')
 plt.savefig(train_test_err_graph_filename)
 
-plt.clf()
-plt.plot(iteration_nums, alphas)
-plt.title(alpha_graph_title)
-plt.xlabel('Iteration Number')
-plt.ylabel('Alpha')
-plt.savefig(alpha_graph_filename)
+if has_alpha:
+    plt.clf()
+    plt.plot(iteration_nums, alphas)
+    plt.title(alpha_graph_title)
+    plt.xlabel('Iteration Number')
+    plt.ylabel('Alpha')
+    plt.savefig(alpha_graph_filename)
 
