@@ -159,10 +159,11 @@ def run_nn(N, input_size, output_size):
 
     # Minimize with BFGS
     res = optimize.minimize(loss_fun, np.append(W, alpha), jac=loss_grad_P, method='L-BFGS-B', \
-        args=(train_images, train_labels), options={'maxiter':2})
+        args=(train_images, train_labels), options={'disp': True, 'maxiter': 2})#, options={'maxiter':2})
+    print(res)
 
     final_test_err = frac_err(res.x, train_images, train_labels)
-    print(N, final_test_err)
+    print(N[0], final_test_err)
     return final_test_err
 
 if __name__ == '__main__':

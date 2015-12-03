@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
         training_error = 0.
         test_error = 0.
-        with open('default.txt', 'r') as input_file:
+        with open(filename, 'r') as input_file:
             next(input_file)
             curr_iteration = 0
             for line in input_file:

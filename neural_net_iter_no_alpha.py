@@ -90,6 +90,16 @@ def load_mnist():
         'https://raw.githubusercontent.com/HIPS/Kayak/master/examples/data.py')
     data = imp.load_source('data', source).mnist()
     train_images, train_labels, test_images, test_labels = data
+
+    import random
+    train_indices = random.sample(range(0, train_images.shape[0]), int(.02 * train_images.shape[0]))
+    test_indices = random.sample(range(0, test_images.shape[0]), int(.02 * test_images.shape[0]))
+
+    train_images = train_images[train_indices, :, :]
+    train_labels = train_labels[train_indices]
+    test_images = test_images[test_indices, :, :]
+    test_labels = test_labels[test_indices]
+
     train_images = partial_flatten(train_images) / 255.0
     test_images  = partial_flatten(test_images)  / 255.0
     train_labels = one_hot(train_labels, 10)
@@ -106,7 +116,8 @@ def make_batches(N_data, batch_size):
 
 if __name__ == '__main__':
     # Network parameters
-    layer_sizes = [12, 3, 3]
+    #layer_sizes = [12, 3, 3]
+    layer_sizes = [784, 10, 10]
     L2_reg = 1.0
 
     # Training parameters
@@ -117,9 +128,9 @@ if __name__ == '__main__':
     num_epochs = 15000
 
     # Load and process MNIST data (borrowing from Kayak)
-    #N_data, train_images, train_labels, test_images, test_labels = load_mnist()
+    N_data, train_images, train_labels, test_images, test_labels = load_mnist()
 
-    N_data, train_images, train_labels, test_images, test_labels = get_wine_data()
+    #N_data, train_images, train_labels, test_images, test_labels = get_wine_data()
     batch_size = len(train_images)
     #train_images, test_images = np.array(zip(x1_train, x2_train)), np.array(zip(x1_test, x2_test))
     #train_labels, test_labels = y_train_labels, y_test_labels
@@ -153,7 +164,7 @@ if __name__ == '__main__':
     num_iterations = []
     train_errors = []
     test_errors = [] 
-    for i in range(0, 100):
+    for i in range(0, 20):
         print(i)
         optimize.minimize(loss_fun, W, jac=loss_grad_W, method='L-BFGS-B', \
             args=(train_images, train_labels), options={'disp': True}, callback=print_perf)
