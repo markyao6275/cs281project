@@ -116,7 +116,7 @@ def run_nn(params, learning_rate, momentum, input_size, output_size):
 
     # Training parameters
     param_scale = 0.1
-    num_epochs = 100
+    num_epochs = 1000
 
     # Load and process MNIST data (borrowing from Kayak)
     #N_data, train_images, train_labels, test_images, test_labels = load_mnist()
