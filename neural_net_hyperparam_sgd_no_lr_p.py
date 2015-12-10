@@ -65,7 +65,7 @@ def make_nn_funs(layer_sizes, L2_reg):
             prev_outputs = outputs
             outputs = np.dot(np.array(inputs), W) + b
             inputs = np.tanh(outputs)
-        return sigmoid(alpha) * outputs + (1 - sigmoid(alpha)) * prev_outputs
+        return alpha * outputs + (1 - alpha) * prev_outputs
 
     def loss(W_vect, X, T, alpha):
         log_prior = -L2_reg * np.dot(W_vect, W_vect)
@@ -116,7 +116,7 @@ def run_nn(params, learning_rate, momentum, input_size, output_size):
 
     # Training parameters
     param_scale = 0.1
-    num_epochs = 1000
+    num_epochs = 200
 
     # Load and process MNIST data (borrowing from Kayak)
     #N_data, train_images, train_labels, test_images, test_labels = load_mnist()
