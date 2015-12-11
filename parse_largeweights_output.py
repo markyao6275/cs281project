@@ -61,7 +61,7 @@ plt.plot(iterations, losses)
 plt.title('Loss vs. Iteration Number')
 plt.xlabel('Iteration Number')
 plt.ylabel('Loss')
-plt.show()
+plt.savefig('largeweights_plot')
 
 
 
