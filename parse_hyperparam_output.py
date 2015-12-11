@@ -3,7 +3,8 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 
-filename = 'hyperparam_output.txt'
+is_gridsearch = sys.argv[1] == 'gridsearch'
+filename = 'gridsearch.txt' if is_gridsearch else 'hyperparam_output.txt'
 
 is_autograd = True
 just_saw_loading_text = False
@@ -39,7 +40,7 @@ with open(filename, 'r') as f:
         if line == last_line:
             break
         elif line == loading_text:
-            is_autograd = not is_autograd
+            is_autograd = not is_autograd and not is_gridsearch
             just_saw_loading_text = True
             curr_batch += 1
             continue
@@ -78,31 +79,38 @@ with open(filename, 'r') as f:
             n_loss_pair = LLossPair(L, loss, is_autograd)
             n_loss_pairs.append(n_loss_pair)
 
-# plot L for the autograd (L-BFGS) runs
-Ls = [pair.L for pair in n_loss_pairs if pair.is_autograd]
-iter_Ls = np.arange(0, len(Ls))
-plt.scatter(iter_Ls, Ls)
-plt.title('L vs Iteration')
-plt.xlabel('Iteration')
-plt.ylabel('L')
-plt.savefig('iterationvsL')
+print curr_batch
 
-# plot loss for the autograd (L-BFGS) runs
-plt.clf()
-losses = [pair.loss for pair in n_loss_pairs if pair.is_autograd]
-iter_losses = np.arange(0, len(losses))
-plt.scatter(iter_losses, losses)
-plt.xlabel('Iteration')
-plt.ylabel('Loss')
-plt.savefig('lossvsL')
+# plot L for the autograd (L-BFGS) runs
+# Ls = [pair.L for pair in n_loss_pairs if pair.is_autograd]
+# iter_Ls = np.arange(0, len(Ls))
+# plt.scatter(iter_Ls, Ls)
+# plt.title('L vs Iteration')
+# plt.xlabel('Iteration')
+# plt.ylabel('L')
+# plt.savefig('iterationvsL')
+
+# # plot loss for the autograd (L-BFGS) runs
+# plt.clf()
+# losses = [pair.loss for pair in n_loss_pairs if pair.is_autograd]
+# iter_losses = np.arange(0, len(losses))
+# plt.scatter(iter_losses, losses)
+# plt.xlabel('Iteration')
+# plt.ylabel('Loss')
+# plt.savefig('lossvsL')
 
 # training_err, test_err, loss vs. epoch for some SGD runs
 target_batch = 6
 
-def plot_sgd_stats_for_batch(target_batch):
-    train_errs = [data.train_err for data in datapoints if data.batch_num == target_batch and data.is_autograd]
-    test_errs = [data.test_err for data in datapoints if data.batch_num == target_batch and data.is_autograd]
-    losses = [data.loss for data in datapoints if data.batch_num == target_batch and data.is_autograd]
+def plot_lbfgs_stats_for_batch(target_batch, want_autograd_run=False):
+    if want_autograd_run:
+        train_errs = [data.train_err for data in datapoints if data.batch_num == target_batch and data.is_autograd]
+        test_errs = [data.test_err for data in datapoints if data.batch_num == target_batch and data.is_autograd]
+        losses = [data.loss for data in datapoints if data.batch_num == target_batch and data.is_autograd]
+    else:
+        train_errs = [data.train_err for data in datapoints if data.batch_num == target_batch]
+        test_errs = [data.test_err for data in datapoints if data.batch_num == target_batch]
+        losses = [data.loss for data in datapoints if data.batch_num == target_batch]
     iteration = np.arange(0, len(train_errs))
     plt.clf()
     plt.subplot(121)
@@ -118,10 +126,10 @@ def plot_sgd_stats_for_batch(target_batch):
     plt.ylabel('Loss')
     plt.plot(iteration, losses, label='Loss')
     plt.legend(loc='upper right')
-    plt.savefig('lbfgs-stats-batch' + str(target_batch))
 
-plot_sgd_stats_for_batch(6)
-plot_sgd_stats_for_batch(20)
-plot_sgd_stats_for_batch(40)
+    save_filename_prefix = 'gridsearch-lbfgs-stats-batch' if is_gridsearch else 'hyperparam-lbfgs-stats-batch'
+    plt.savefig(save_filename_prefix + str(target_batch))
 
+for i in xrange(1, 9):
+    plot_lbfgs_stats_for_batch(i, not is_gridsearch)
 
